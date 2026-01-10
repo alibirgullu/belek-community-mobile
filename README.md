@@ -2,8 +2,8 @@
 
 This repository contains the mobile application of the Belek University Student Communities Platform.
 
-## Technologies (Planned)
-- React Native (or Flutter)
+## Technologies 
+- React Native 
 - REST API integration
 
 ## Scope
