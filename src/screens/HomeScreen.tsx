@@ -6,7 +6,8 @@ import {
   FlatList, 
   ActivityIndicator, 
   TouchableOpacity,
-  StatusBar
+  StatusBar,
+  Image // Logo için eklendi
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -20,14 +21,14 @@ import { useNavigation } from '@react-navigation/native';
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
   monthNamesShort: ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'],
-  dayNames: ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi', 'Pazar'],
-  dayNamesShort: ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'],
+  dayNames: ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'],
+  dayNamesShort: ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'],
   today: 'Bugün'
 };
 LocaleConfig.defaultLocale = 'tr';
 
 export default function HomeScreen() {
-  const navigation = useNavigation<any>(); // AI sayfasına gitmek için eklendi
+  const navigation = useNavigation<any>(); 
   const [events, setEvents] = useState<Event[]>([]);
   const [markedDates, setMarkedDates] = useState<any>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -127,6 +128,7 @@ export default function HomeScreen() {
           <>
             <View style={styles.calendarContainer}>
               <Calendar
+                firstDay={1}
                 markedDates={markedDates}
                 theme={{
                   backgroundColor: '#ffffff',
@@ -159,13 +161,30 @@ export default function HomeScreen() {
         }
       />
 
-      {/* YÜZEN AI ASİSTAN BUTONU (SİHİRLİ BALONCUK) */}
-      <TouchableOpacity 
-        style={styles.floatingAiButton}
-        onPress={() => navigation.navigate('AiChat')}
-      >
-        <Ionicons name="sparkles" size={28} color="#FFF" />
-      </TouchableOpacity>
+      {/* YÜZEN AI ASİSTAN BUTONU VE KONUŞMA BALONU */}
+      <View style={styles.floatingContainer}>
+        
+        {/* Konuşma Balonu */}
+        <View style={styles.chatBubble}>
+          <Text style={styles.chatBubbleText}>Sana yardım etmek için buradayım!</Text>
+          <View style={styles.chatBubbleArrow} />
+        </View>
+
+        {/* Ana Buton (Logo) */}
+        <TouchableOpacity 
+          style={styles.floatingAiButton}
+          onPress={() => navigation.navigate('AiChat')}
+          activeOpacity={0.8}
+        >
+          <Image 
+            
+            source={require('../../assets/antalya-belek-uni.png')} 
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+        
+      </View>
 
     </View>
   );
@@ -190,7 +209,7 @@ const styles = StyleSheet.create({
   subGreeting: { fontSize: 15, color: '#FFCDD2', marginTop: 4, fontWeight: '500' },
   avatarPlaceholder: { width: 50, height: 50, backgroundColor: '#FFFFFF', borderRadius: 25, justifyContent: 'center', alignItems: 'center' },
   avatarText: { color: '#D32F2F', fontSize: 18, fontWeight: '900' },
-  listContainer: { paddingBottom: 100 }, // Yüzen butonun arkasında liste elemanları kalmasın diye padding artırıldı
+  listContainer: { paddingBottom: 130 }, // Balon ve menü için ekstra boşluk bırakıldı
   calendarContainer: {
     margin: 16,
     marginTop: 20,
@@ -236,26 +255,69 @@ const styles = StyleSheet.create({
   eventDetails: { flexDirection: 'row', gap: 12 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   detailText: { fontSize: 12, color: '#495057', fontWeight: '500' },
-  
-  // Yüzen AI Asistan Butonu Stilleri
-  // HomeScreen.tsx içindeki floatingAiButton stilini bu şekilde güncelle:
-  floatingAiButton: {
+
+  // --- YENİ YÜZEN ASİSTAN VE BALON STİLLERİ ---
+  floatingContainer: {
     position: 'absolute',
-    bottom: 100, // Menünün üzerinde kalması için yükselttik
+    bottom: 100, // Menünün üzerinde kalma mesafesi
     right: 24,
+    alignItems: 'flex-end', // Balonu sağa dayalı tutmak için
+    zIndex: 999,
+    elevation: 10,
+  },
+  chatBubble: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginBottom: 12, // Buton ile balon arasındaki boşluk
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
+  },
+  chatBubbleText: {
+    color: '#1A1A1A',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  chatBubbleArrow: {
+    position: 'absolute',
+    bottom: -6, // Balonun dışına taşsın
+    right: 24, // Butonun tam ortasına hizalanacak şekilde ayarlandı
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#FFFFFF', // Balonla aynı renk olmalı
+  },
+  floatingAiButton: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#FFFFFF', // Logonun arkası temiz dursun diye beyaz
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 999, // Katman olarak en üste çıkardık
-    shadowColor: '#D32F2F',
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: '#D32F2F', // Okulun kırmızı renginde şık bir gölge
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
-    elevation: 10, // Android için de en üste aldık
+    elevation: 8,
     borderWidth: 2,
-    borderColor: '#D32F2F',
+    borderColor: '#D32F2F', // Dış çerçeve kırmızı
+    overflow: 'hidden', // Logonun kenarlardan taşmasını engeller
+  },
+  logoImage: {
+    width: 44, // Çerçevenin içinde biraz boşluk kalacak şekilde boyut
+    height: 44,
+    borderRadius: 22, 
   }
 });
