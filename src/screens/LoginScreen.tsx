@@ -7,13 +7,15 @@ import {
   StyleSheet, 
   Alert, 
   KeyboardAvoidingView, 
-  Platform,
-  Image
+  Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import { authService } from '../services/authService';
 
 export default function LoginScreen() {
+  const navigation = useNavigation<any>(); 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,8 +34,8 @@ export default function LoginScreen() {
       if (data && data.token) {
         await login(data.token);
       }
-    } catch (error) {
-      Alert.alert('Giriş Başarısız', 'E-posta veya şifre hatalı. Lütfen tekrar deneyin.');
+    } catch (error: any) {
+      Alert.alert('Giriş Başarısız', error.response?.data?.Message || 'E-posta veya şifre hatalı. Lütfen tekrar deneyin.');
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -41,61 +43,78 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <View style={styles.headerContainer}>
-        {/* İleride buraya okulun veya projenin PNG logosunu ekleyebilirsin */}
-        <View style={styles.logoPlaceholder}>
-          <Text style={styles.logoText}>BU</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <View style={styles.headerContainer}>
+          <View style={styles.logoPlaceholder}>
+            <Text style={styles.logoText}>BU</Text>
+          </View>
+          <Text style={styles.title}>Belek Topluluk</Text>
+          <Text style={styles.subtitle}>İşte BU! Kampüs hayatına bağlan.</Text>
         </View>
-        <Text style={styles.title}>Belek Topluluk</Text>
-        <Text style={styles.subtitle}>İşte BU! Kampüs hayatına bağlan.</Text>
-      </View>
 
-      <View style={styles.formContainer}>
-        <TextInput 
-          style={styles.input}
-          placeholder="Öğrenci No (örn: 241234567@ogr.belek.edu.tr)" 
-          placeholderTextColor="#A0AEC0"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        
-        <TextInput 
-          style={styles.input}
-          placeholder="OBS / E-posta Şifresi" 
-          placeholderTextColor="#A0AEC0"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+        <View style={styles.formContainer}>
+          <TextInput 
+            style={styles.input}
+            placeholder="Öğrenci No (örn: 241234567@ogr.belek.edu.tr)" 
+            placeholderTextColor="#A0AEC0"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          
+          <TextInput 
+            style={styles.input}
+            placeholder="OBS / E-posta Şifresi" 
+            placeholderTextColor="#A0AEC0"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
 
-        <TouchableOpacity 
-          style={[styles.button, isSubmitting && styles.buttonDisabled]} 
-          onPress={handleLogin}
-          disabled={isSubmitting}
-        >
-          <Text style={styles.buttonText}>
-            {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.button, isSubmitting && styles.buttonDisabled]} 
+            onPress={handleLogin}
+            disabled={isSubmitting}
+          >
+            <Text style={styles.buttonText}>
+              {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.forgotPasswordContainer}>
-          <Text style={styles.forgotPasswordText}>Şifremi Unuttum</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+          {/* İŞTE GÜNCELLENEN KISIM: Şifremi Unuttum Yönlendirmesi */}
+          <TouchableOpacity 
+            style={styles.forgotPasswordContainer}
+            onPress={() => navigation.navigate('ForgotPassword')}
+          >
+            <Text style={styles.forgotPasswordText}>Şifremi Unuttum</Text>
+          </TouchableOpacity>
+
+          {/* Kayıt Ekranına Yönlendirme Alanı */}
+          <View style={styles.registerContainer}>
+            <Text style={styles.registerText}>Hesabın yok mu? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.registerLink}>Kayıt Ol</Text>
+            </TouchableOpacity>
+          </View>
+
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FAFAFA',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA', // Çok hafif kırık beyaz arka plan
     justifyContent: 'center',
     padding: 24,
   },
@@ -106,7 +125,7 @@ const styles = StyleSheet.create({
   logoPlaceholder: {
     width: 80,
     height: 80,
-    backgroundColor: '#D32F2F', // Belek Üniversitesi Kırmızısı
+    backgroundColor: '#D32F2F', 
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
@@ -126,7 +145,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1A1A1A', // Logodaki siyah vurgu
+    color: '#1A1A1A', 
     marginBottom: 8,
   },
   subtitle: {
@@ -155,7 +174,7 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   button: {
-    backgroundColor: '#D32F2F', // Belek Üniversitesi Kırmızısı
+    backgroundColor: '#D32F2F', 
     padding: 16,
     borderRadius: 10,
     alignItems: 'center',
@@ -167,7 +186,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   buttonDisabled: {
-    backgroundColor: '#E57373', // Soluk Kırmızı (Yükleniyor durumu)
+    backgroundColor: '#E57373', 
   },
   buttonText: {
     color: '#FFFFFF',
@@ -180,8 +199,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   forgotPasswordText: {
-    color: '#1A1A1A', // Siyah tonlarında şık bir "şifremi unuttum" yazısı
+    color: '#1A1A1A', 
     fontSize: 14,
     fontWeight: '600',
+  },
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 30,
+  },
+  registerText: {
+    color: '#666666',
+    fontSize: 15,
+  },
+  registerLink: {
+    color: '#D32F2F',
+    fontSize: 15,
+    fontWeight: 'bold',
   }
 });

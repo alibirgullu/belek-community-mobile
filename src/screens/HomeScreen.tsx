@@ -6,26 +6,28 @@ import {
   FlatList, 
   ActivityIndicator, 
   TouchableOpacity,
-  SafeAreaView,
   StatusBar
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient'; // Gradient kütüphanesi eklendi
+import { LinearGradient } from 'expo-linear-gradient'; 
 import api from '../services/api';
 import { Event } from '../types';
+import { useNavigation } from '@react-navigation/native';
 
-// Takvimi Türkçe yapmak için ayarlar (Senin yazdığın orijinal mantık korunuyor)
+// Takvimi Türkçe yapmak için ayarlar
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
   monthNamesShort: ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'],
-  dayNames: ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'],
-  dayNamesShort: ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'],
+  dayNames: ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi', 'Pazar'],
+  dayNamesShort: ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'],
   today: 'Bugün'
 };
 LocaleConfig.defaultLocale = 'tr';
 
 export default function HomeScreen() {
+  const navigation = useNavigation<any>(); // AI sayfasına gitmek için eklendi
   const [events, setEvents] = useState<Event[]>([]);
   const [markedDates, setMarkedDates] = useState<any>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +42,6 @@ export default function HomeScreen() {
       const marks: any = {};
       fetchedEvents.forEach(event => {
         const dateKey = event.startDate.split('T')[0];
-        // Belek Kırmızısı (#D32F2F) ile işaretleme
         marks[dateKey] = { marked: true, dotColor: '#D32F2F' };
       });
       
@@ -103,11 +104,10 @@ export default function HomeScreen() {
       
       {/* Üst Kırmızı Gradient Karşılama Alanı */}
       <LinearGradient
-        // Koyu Bordo -> Ana Belek Kırmızısı -> Parlak Kırmızı (3'lü geçiş)
         colors={['#640000', '#D32F2F', '#E53935']} 
         style={styles.header}
-        start={{ x: 0, y: 0.5 }} // Tam soldan başla
-        end={{ x: 1, y: 0.5 }}   // Tam sağa doğru git
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
       >
         <SafeAreaView>
           <View style={styles.headerContent}>
@@ -158,17 +158,25 @@ export default function HomeScreen() {
           <Text style={styles.emptyText}>Şu an planlanmış bir etkinlik bulunmuyor.</Text>
         }
       />
+
+      {/* YÜZEN AI ASİSTAN BUTONU (SİHİRLİ BALONCUK) */}
+      <TouchableOpacity 
+        style={styles.floatingAiButton}
+        onPress={() => navigation.navigate('AiChat')}
+      >
+        <Ionicons name="sparkles" size={28} color="#FFF" />
+      </TouchableOpacity>
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' }, // Biraz daha temiz bir gri tonu
+  container: { flex: 1, backgroundColor: '#F8F9FA' },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAFAFA' },
   header: {
-    // backgroundColor kaldırıldı, LinearGradient kullanılıyor
     paddingHorizontal: 24,
-    paddingBottom: 40, // Mesafeyi açmak için alt padding artırıldı
+    paddingBottom: 40,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
     shadowColor: '#000',
@@ -182,10 +190,10 @@ const styles = StyleSheet.create({
   subGreeting: { fontSize: 15, color: '#FFCDD2', marginTop: 4, fontWeight: '500' },
   avatarPlaceholder: { width: 50, height: 50, backgroundColor: '#FFFFFF', borderRadius: 25, justifyContent: 'center', alignItems: 'center' },
   avatarText: { color: '#D32F2F', fontSize: 18, fontWeight: '900' },
-  listContainer: { paddingBottom: 20 },
+  listContainer: { paddingBottom: 100 }, // Yüzen butonun arkasında liste elemanları kalmasın diye padding artırıldı
   calendarContainer: {
     margin: 16,
-    marginTop: 20, // Kırmızı header'dan uzaklaştırmak için pozitif margin verildi
+    marginTop: 20,
     backgroundColor: '#ffffff',
     borderRadius: 16,
     overflow: 'hidden',
@@ -227,5 +235,27 @@ const styles = StyleSheet.create({
   communityName: { fontSize: 13, color: '#6c757d', marginBottom: 8, fontWeight: '500' },
   eventDetails: { flexDirection: 'row', gap: 12 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  detailText: { fontSize: 12, color: '#495057', fontWeight: '500' }
+  detailText: { fontSize: 12, color: '#495057', fontWeight: '500' },
+  
+  // Yüzen AI Asistan Butonu Stilleri
+  // HomeScreen.tsx içindeki floatingAiButton stilini bu şekilde güncelle:
+  floatingAiButton: {
+    position: 'absolute',
+    bottom: 100, // Menünün üzerinde kalması için yükselttik
+    right: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#1A1A1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999, // Katman olarak en üste çıkardık
+    shadowColor: '#D32F2F',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 10, // Android için de en üste aldık
+    borderWidth: 2,
+    borderColor: '#D32F2F',
+  }
 });
