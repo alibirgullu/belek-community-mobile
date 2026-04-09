@@ -1,18 +1,23 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
-  Text, 
-  StyleSheet, 
-  Alert, 
-  KeyboardAvoidingView, 
-  Platform
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Animated,
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { authService } from '../services/authService';
+import { useTranslation } from 'react-i18next';
+import { Spacing } from '../theme/commonStyles';
 
 type ParamList = {
   ResetPassword: { email: string };
@@ -21,105 +26,245 @@ type ParamList = {
 export default function ResetPasswordScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<ParamList, 'ResetPassword'>>();
-  
-  // Önceki sayfadan (Şifremi Unuttum) gelen e-posta adresini alıyoruz
+  const { t } = useTranslation();
+
   const userEmail = route.params?.email || '';
 
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, []);
 
   const handleReset = async () => {
     if (!code || code.length !== 6 || !newPassword) {
-      Alert.alert('Uyarı', 'Lütfen 6 haneli kodu ve yeni şifrenizi eksiksiz girin.');
+      Alert.alert(t('common.warning'), 'Lütfen 6 haneli kodu ve yeni şifrenizi eksiksiz girin.');
       return;
     }
 
     setIsSubmitting(true);
     try {
       const response = await authService.resetPassword(userEmail, code, newPassword);
-      
-      Alert.alert('Harika!', response.Message || 'Şifreniz başarıyla güncellendi.', [
-        { 
-          text: 'Giriş Yap', 
-          onPress: () => navigation.navigate('Login') // İşlem bitince giriş ekranına yolla
+
+      Alert.alert(t('common.success'), response.Message || 'Şifreniz başarıyla güncellendi.', [
+        {
+          text: t('login.loginButton'),
+          onPress: () => navigation.navigate('Login')
         }
       ]);
     } catch (error: any) {
-      Alert.alert('Hata', error.response?.data?.Message || 'Kod hatalı veya süresi dolmuş.');
+      Alert.alert(t('common.error'), error.response?.data?.Message || 'Kod hatalı veya süresi dolmuş.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
-        </TouchableOpacity>
-
-        <View style={styles.headerContainer}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="lock-closed-outline" size={40} color="#D32F2F" />
-          </View>
-          <Text style={styles.title}>Yeni Şifre Belirle</Text>
-          <Text style={styles.subtitle}>
-            <Text style={{ fontWeight: 'bold' }}>{userEmail}</Text> adresine gelen 6 haneli kodu ve yeni şifrenizi girin.
-          </Text>
-        </View>
-
-        <View style={styles.formContainer}>
-          <TextInput 
-            style={styles.codeInput}
-            placeholder="000000" 
-            placeholderTextColor="#CCC"
-            value={code}
-            onChangeText={setCode}
-            keyboardType="number-pad"
-            maxLength={6}
-            textAlign="center"
-          />
-
-          <TextInput 
-            style={styles.input}
-            placeholder="Yeni Şifre" 
-            placeholderTextColor="#A0AEC0"
-            value={newPassword}
-            onChangeText={setNewPassword}
-            secureTextEntry
-          />
-
-          <TouchableOpacity 
-            style={[styles.button, isSubmitting && styles.buttonDisabled]} 
-            onPress={handleReset}
-            disabled={isSubmitting}
-          >
-            <Text style={styles.buttonText}>
-              {isSubmitting ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}
-            </Text>
+    <LinearGradient colors={['#7A162B', '#0A0F1D']} style={styles.gradientBackground}>
+      <SafeAreaView style={styles.transparentSafeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+        >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={28} color="#FFF" />
           </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+
+          <Animated.View style={[{ flex: 1, justifyContent: 'center' }, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <View style={styles.glassCard}>
+              <View style={styles.headerContainer}>
+                <View style={styles.logoRedContainer}>
+                  <Ionicons name="lock-closed" size={32} color="#FFF" />
+                </View>
+                <Text style={styles.titleWhite}>Yeni Şifre Belirle</Text>
+                <Text style={styles.subtitleGray}>
+                  {userEmail} adresine gelen kodu ve yeni şifrenizi girin.
+                </Text>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Ionicons name="keypad" size={20} color="#54607B" style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.inputStyle, { fontSize: 20, letterSpacing: 4 }]}
+                  placeholder="000000"
+                  placeholderTextColor="#54607B"
+                  value={code}
+                  onChangeText={setCode}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed" size={20} color="#54607B" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.inputStyle}
+                  placeholder="Yeni Şifre"
+                  placeholderTextColor="#54607B"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry={!isPasswordVisible}
+                />
+                <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)} style={styles.eyeIcon}>
+                  <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={20} color="#54607B" />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.loginButton, isSubmitting && styles.loginButtonDisabled]}
+                onPress={handleReset}
+                disabled={isSubmitting}
+                activeOpacity={0.8}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.loginButtonText}>
+                    Şifreyi Güncelle
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA' },
-  keyboardView: { flex: 1, padding: 24, justifyContent: 'center' },
-  backButton: { position: 'absolute', top: Platform.OS === 'ios' ? 10 : 30, left: 20, zIndex: 10 },
-  headerContainer: { alignItems: 'center', marginBottom: 40 },
-  iconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#FFF0F0', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 12 },
-  subtitle: { fontSize: 15, color: '#666666', textAlign: 'center', lineHeight: 22, paddingHorizontal: 10 },
-  formContainer: { backgroundColor: '#FFFFFF', padding: 30, borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 5, alignItems: 'center' },
-  codeInput: { backgroundColor: '#F7FAFC', borderWidth: 2, borderColor: '#E2E8F0', borderRadius: 12, padding: 16, fontSize: 32, fontWeight: 'bold', letterSpacing: 10, color: '#1A1A1A', width: '100%', marginBottom: 16 },
-  input: { backgroundColor: '#F7FAFC', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, padding: 16, fontSize: 15, marginBottom: 24, color: '#1A1A1A', width: '100%' },
-  button: { backgroundColor: '#D32F2F', paddingVertical: 16, borderRadius: 12, width: '100%', alignItems: 'center', shadowColor: '#D32F2F', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 5, elevation: 4 },
-  buttonDisabled: { backgroundColor: '#E57373' },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold', letterSpacing: 0.5 }
+  gradientBackground: {
+    flex: 1,
+  },
+  transparentSafeArea: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 10 : 30,
+    left: Spacing.lg,
+    zIndex: 10,
+    padding: 8,
+  },
+  glassCard: {
+    backgroundColor: 'rgba(30, 35, 50, 0.65)',
+    borderRadius: 24,
+    padding: Spacing.xl,
+    paddingTop: Spacing.xxl,
+    paddingBottom: Spacing.xl,
+    marginHorizontal: Spacing.xs,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+    elevation: 10,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+  },
+  logoRedContainer: {
+    width: 72,
+    height: 72,
+    backgroundColor: '#E53E3E',
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+    shadowColor: '#FF5C5C',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 25,
+    elevation: 15,
+  },
+  titleWhite: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  subtitleGray: {
+    fontSize: 13,
+    color: '#8B95A5',
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+    fontWeight: '500',
+    lineHeight: 20,
+    paddingHorizontal: Spacing.md,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#161C2A',
+    borderRadius: 14,
+    marginBottom: Spacing.md,
+    height: 56,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.04)',
+  },
+  inputIcon: {
+    paddingHorizontal: 16,
+  },
+  inputStyle: {
+    flex: 1,
+    color: '#FFF',
+    fontSize: 15,
+    height: '100%',
+  },
+  eyeIcon: {
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+  },
+  loginButton: {
+    backgroundColor: '#D12525',
+    height: 54,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    shadowColor: '#D12525',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  loginButtonDisabled: {
+    opacity: 0.7,
+  },
+  loginButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
 });

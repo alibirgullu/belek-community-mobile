@@ -1,11 +1,20 @@
 // src/types/index.ts
 
+export interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profileImageUrl?: string;
+}
+
 export interface Community {
   id: number;
   name: string;
   description?: string;
   logoUrl?: string;
   categoryName?: string; // Topluluğun kategorisi (Spor, Sanat, Bilim vb.)
+  memberCount?: number;
 }
 
 export interface Event {
@@ -18,6 +27,9 @@ export interface Event {
   endDate?: string;
   location?: string;
   posterUrl?: string;
+  category?: string;
+  latitude?: number;
+  longitude?: number;
 }
 export interface CommunityMemberDto {
   userId: number;
@@ -43,4 +55,13 @@ export interface CommunityDetail {
   boardMembers: CommunityMemberDto[];
   upcomingEvents: Event[]; // Yukarıda Event tipini tanımlamıştık
   recentAnnouncements: CommunityAnnouncementDto[];
+}
+
+export interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  type?: string;
+  isRead: boolean;
+  createdAt: string;
 }

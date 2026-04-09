@@ -1,14 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, Text, TextInput, TouchableOpacity, StyleSheet, 
-  FlatList, KeyboardAvoidingView, Platform, ActivityIndicator 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  StatusBar,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { aiService } from '../services/aiService';
+import { useTranslation } from 'react-i18next';
+import Colors from '../theme/colors';
+import { CommonStyles, Typography, Spacing, Radii, Shadows } from '../theme/commonStyles';
 
-// Mesaj tipimiz
 interface Message {
   id: string;
   text: string;
@@ -18,10 +29,10 @@ interface Message {
 export default function AiChatScreen() {
   const navigation = useNavigation();
   const flatListRef = useRef<FlatList>(null);
-  
-  // İlk açılışta AI'dan gelen bir selamlama mesajı
+  const { t } = useTranslation();
+
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', text: 'Merhaba! Ben Belek AI. Üniversitemizdeki topluluklar ve yaklaşan etkinlikler hakkında sana nasıl yardımcı olabilirim?', isUser: false }
+    { id: '1', text: t('aiChat.initialMessage'), isUser: false },
   ]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -36,55 +47,70 @@ export default function AiChatScreen() {
 
     try {
       const data = await aiService.askQuestion(userMsg.text);
-      
-      const botMsg: Message = { 
-        id: (Date.now() + 1).toString(), 
-        // Backend'deki DTO'na göre response ya data.response ya da data.Response olarak gelir
-        text: data.Response || data.response || "Üzgünüm, bir cevap alamadım.", 
-        isUser: false 
+
+      const botMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        text: data.Response || data.response || t('aiChat.defaultResponse'),
+        isUser: false
       };
-      
+
       setMessages(prev => [...prev, botMsg]);
     } catch (error) {
-      const errorMsg: Message = { id: (Date.now() + 1).toString(), text: "Bağlantı hatası oluştu. Lütfen tekrar dene.", isUser: false };
+      const errorMsg: Message = { id: (Date.now() + 1).toString(), text: t('aiChat.errorResponse'), isUser: false };
       setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsTyping(false);
     }
   };
 
-  // Yeni mesaj geldiğinde otomatik en alta kaydır
   useEffect(() => {
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 200);
   }, [messages, isTyping]);
 
-  const renderMessage = ({ item }: { item: Message }) => (
-    <View style={[styles.messageBubble, item.isUser ? styles.userBubble : styles.aiBubble]}>
-      {!item.isUser && <Ionicons name="sparkles" size={16} color="#D32F2F" style={{ marginRight: 6, marginTop: 2 }} />}
-      <Text style={[styles.messageText, item.isUser ? styles.userText : styles.aiText]}>
-        {item.text}
-      </Text>
-    </View>
-  );
+  const renderMessage = ({ item }: { item: Message }) => {
+    const isUser = item.isUser;
+    return (
+      <View style={[styles.bubbleWrapper, isUser ? styles.bubbleWrapperUser : styles.bubbleWrapperAI]}>
+        {!isUser && (
+          <View style={styles.aiAvatar}>
+            <Image
+              source={require('../../assets/antalya-belek-uni.png')}
+              style={{ width: 16, height: 16 }}
+              resizeMode="contain"
+            />
+          </View>
+        )}
+        <View style={[
+          styles.messageBubble,
+          isUser ? styles.userBubble : styles.aiBubble
+        ]}>
+          <Text style={[styles.messageText, isUser ? styles.userText : styles.aiText]}>
+            {item.text}
+          </Text>
+        </View>
+      </View>
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Üst Bar */}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="chevron-down" size={28} color="#1A1A1A" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton} activeOpacity={0.7}>
+          <Text style={styles.headerButtonText}>{t('aiChat.close')}</Text>
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Ionicons name="hardware-chip-outline" size={24} color="#D32F2F" />
-          <Text style={styles.headerTitle}>Belek AI Asistan</Text>
+          <Text style={styles.headerTitle}>{t('aiChat.title')}</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
+          <Ionicons name="ellipsis-horizontal" size={24} color={Colors.primary} />
+        </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView 
-        style={styles.chatContainer} 
+      <KeyboardAvoidingView
+        style={styles.chatContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <FlatList
@@ -98,27 +124,34 @@ export default function AiChatScreen() {
 
         {isTyping && (
           <View style={styles.typingIndicator}>
-            <ActivityIndicator size="small" color="#D32F2F" />
-            <Text style={styles.typingText}>Belek AI düşünüyor...</Text>
+            <Text style={styles.typingText}>{t('aiChat.typing')}</Text>
           </View>
         )}
 
         <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Etkinlikleri veya toplulukları sor..."
-            placeholderTextColor="#999"
-            value={inputText}
-            onChangeText={setInputText}
-            multiline
-          />
-          <TouchableOpacity 
-            style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]} 
-            onPress={sendMessage}
-            disabled={!inputText.trim() || isTyping}
-          >
-            <Ionicons name="send" size={20} color="#FFF" />
-          </TouchableOpacity>
+          <View style={styles.inputWrapper}>
+            <TouchableOpacity style={styles.attachButton}>
+              <Ionicons name="add" size={28} color={Colors.textTertiary} />
+            </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              placeholder={t('aiChat.placeholder')}
+              placeholderTextColor={Colors.textTertiary}
+              value={inputText}
+              onChangeText={setInputText}
+              multiline
+            />
+            {inputText.trim().length > 0 && (
+              <TouchableOpacity
+                style={styles.sendButton}
+                onPress={sendMessage}
+                disabled={isTyping}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="arrow-up" size={20} color={Colors.textLight} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -126,23 +159,139 @@ export default function AiChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F7FA' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  backButton: { width: 40, height: 40, justifyContent: 'center' },
-  headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', marginLeft: 8 },
+  container: { flex: 1, backgroundColor: Colors.background },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: 'rgba(248, 249, 250, 0.9)', 
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+    zIndex: 10,
+  },
+  headerButton: {
+    minWidth: 60,
+    height: 44,
+    justifyContent: 'center'
+  },
+  headerButtonText: {
+    color: Colors.primary,
+    fontSize: 17,
+    fontWeight: '500',
+  },
+  headerTitleContainer: {
+    alignItems: 'center'
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: Colors.text
+  },
   chatContainer: { flex: 1 },
-  messageList: { padding: 16, paddingBottom: 20 },
-  messageBubble: { maxWidth: '85%', padding: 14, borderRadius: 20, marginBottom: 12, flexDirection: 'row' },
-  userBubble: { alignSelf: 'flex-end', backgroundColor: '#D32F2F', borderBottomRightRadius: 4 },
-  aiBubble: { alignSelf: 'flex-start', backgroundColor: '#FFF', borderBottomLeftRadius: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  messageText: { fontSize: 15, lineHeight: 22, flexShrink: 1 },
-  userText: { color: '#FFF' },
-  aiText: { color: '#1A1A1A' },
-  typingIndicator: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 10 },
-  typingText: { marginLeft: 8, color: '#666', fontSize: 13, fontStyle: 'italic' },
-  inputContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#E2E8F0', alignItems: 'flex-end' },
-  input: { flex: 1, backgroundColor: '#F7FAFC', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 20, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, fontSize: 15, maxHeight: 100, color: '#1A1A1A' },
-  sendButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#D32F2F', justifyContent: 'center', alignItems: 'center', marginLeft: 12, marginBottom: 2 },
-  sendButtonDisabled: { backgroundColor: '#E57373' }
+  messageList: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg
+  },
+  bubbleWrapper: {
+    flexDirection: 'row',
+    marginBottom: Spacing.md,
+    maxWidth: '85%',
+  },
+  bubbleWrapperUser: {
+    alignSelf: 'flex-end',
+  },
+  bubbleWrapperAI: {
+    alignSelf: 'flex-start',
+    alignItems: 'flex-end',
+  },
+  aiAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.sm,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  messageBubble: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 12,
+  },
+  userBubble: {
+    backgroundColor: Colors.primary, 
+    borderRadius: 18,
+    borderBottomRightRadius: 4,
+  },
+  aiBubble: {
+    backgroundColor: '#E9ECEF', 
+    borderRadius: 18,
+    borderBottomLeftRadius: 4,
+  },
+  messageText: {
+    fontSize: 17, 
+    lineHeight: 22
+  },
+  userText: { color: Colors.textLight },
+  aiText: { color: Colors.text },
+  typingIndicator: {
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.md
+  },
+  typingText: {
+    color: Colors.textTertiary,
+    fontSize: 13,
+    fontWeight: '500',
+    marginLeft: Spacing.lg
+  },
+  inputContainer: {
+    padding: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+    paddingBottom: Platform.OS === 'ios' ? Spacing.xl : Spacing.sm,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: '#D1D1D6', 
+    borderRadius: 24,
+    paddingLeft: Spacing.xs,
+    paddingRight: 6,
+    paddingVertical: 6,
+  },
+  attachButton: {
+    width: 38,
+    height: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  input: {
+    flex: 1,
+    fontSize: 17,
+    maxHeight: 120,
+    color: Colors.text,
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingLeft: Spacing.sm,
+    marginRight: Spacing.sm,
+  },
+  sendButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4
+  }
 });

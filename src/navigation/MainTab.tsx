@@ -1,100 +1,38 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, View, StyleSheet } from 'react-native';
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native'; // Aktif rotayı bulmak için eklendi
+import { Platform, View, StyleSheet, Text } from 'react-native';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import Colors from '../theme/colors';
+import { Spacing, Radii } from '../theme/commonStyles';
+import { useTranslation } from 'react-i18next';
 
-import HomeStack from './HomeStack'; 
+import HomeStack from './HomeStack';
 import ProfileStack from './ProfileStack';
-import ExploreStack from './ExploreStack'; 
+import ExploreStack from './ExploreStack'; // We use ExploreStack for Topluluk
+
+import CustomTabBar from '../components/CustomTabBar';
 
 const Tab = createBottomTabNavigator();
 
 export default function MainTab() {
+  const { t } = useTranslation();
+
   return (
     <Tab.Navigator
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={({ route }) => {
-        // Alt yığındaki (Stack) aktif ekranın adını alıyoruz
         const routeName = getFocusedRouteNameFromRoute(route) ?? '';
-
         return {
           headerShown: false,
-          tabBarIcon: ({ focused, color }) => {
-            let iconName: keyof typeof Ionicons.glyphMap = 'home';
-
-            if (route.name === 'Ana Sayfa') {
-              iconName = focused ? 'home' : 'home-outline';
-            } else if (route.name === 'Keşfet') {
-              iconName = focused ? 'compass' : 'compass-outline';
-            } else if (route.name === 'Profil') {
-              iconName = focused ? 'person' : 'person-outline';
-            }
-
-            return (
-              <View style={styles.iconContainer}>
-                <Ionicons 
-                  name={iconName} 
-                  size={focused ? 26 : 24} 
-                  color={color} 
-                />
-                {focused && <View style={styles.activeDot} />}
-              </View>
-            );
-          },
-          tabBarActiveTintColor: '#D32F2F',
-          tabBarInactiveTintColor: '#8E8E93',
-          // Eğer AiChat sayfasındaysak menüyü gizle, değilse normal stilini (styles.tabBar) kullan
-          tabBarStyle: routeName === 'AiChat' ? { display: 'none' } : styles.tabBar,
-          tabBarLabelStyle: styles.tabBarLabel,
           tabBarHideOnKeyboard: true,
+          tabBarStyle: routeName === 'AiChat' ? { display: 'none' } : undefined,
         };
       }}
     >
       <Tab.Screen name="Ana Sayfa" component={HomeStack} />
-      <Tab.Screen name="Keşfet" component={ExploreStack} />
-      <Tab.Screen 
-        name="Profil" 
-        component={ProfileStack} 
-      />
+      <Tab.Screen name="Topluluk" component={ExploreStack} />
+      <Tab.Screen name="Profil" component={ProfileStack} />
     </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBar: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 24 : 16,
-    left: 20,
-    right: 20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    height: 70,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    borderTopWidth: 0,
-    paddingHorizontal: 10,
-  },
-  tabBarLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    marginBottom: Platform.OS === 'ios' ? 0 : 8,
-    marginTop: -4,
-  },
-  iconContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: Platform.OS === 'ios' ? 12 : 8,
-    height: 32,
-  },
-  activeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#D32F2F',
-    position: 'absolute',
-    bottom: -10,
-  }
-});

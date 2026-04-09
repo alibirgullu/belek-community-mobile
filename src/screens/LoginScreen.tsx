@@ -1,41 +1,112 @@
-import React, { useState, useContext } from 'react';
-import { 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
-  Text, 
-  StyleSheet, 
-  Alert, 
-  KeyboardAvoidingView, 
-  Platform
+import React, { useState, useContext, useEffect, useRef } from 'react';
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Animated,
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import { authService } from '../services/authService';
+import { useTranslation } from 'react-i18next';
+import { Spacing } from '../theme/commonStyles';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+
+const GlowingOrb = ({ positionStyle }: { positionStyle: any }) => {
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 3000,
+          useNativeDriver: true,
+        })
+      ])
+    ).start();
+  }, []);
+
+  const scale = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.2],
+  });
+
+  const opacity = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.7, 1],
+  });
+
+  return (
+    <Animated.View style={[styles.orbContainer, positionStyle, { transform: [{ scale }], opacity }]}>
+      <View style={[styles.orbLayer, { width: 400, height: 400, borderRadius: 200, opacity: 0.03 }]} />
+      <View style={[styles.orbLayer, { width: 320, height: 320, borderRadius: 160, opacity: 0.05 }]} />
+      <View style={[styles.orbLayer, { width: 240, height: 240, borderRadius: 120, opacity: 0.08 }]} />
+      <View style={[styles.orbLayer, { width: 160, height: 160, borderRadius: 80, opacity: 0.12 }]} />
+      <View style={[styles.orbLayer, { width: 80, height: 80, borderRadius: 40, opacity: 0.18 }]} />
+    </Animated.View>
+  );
+};
 
 export default function LoginScreen() {
-  const navigation = useNavigation<any>(); 
+  const navigation = useNavigation<any>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useTranslation();
   const { login } = useContext(AuthContext);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+
+  useEffect(() => {
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Uyarı', 'Lütfen e-posta ve şifrenizi girin.');
+      Alert.alert(t('login.warningTitle'), t('login.warningMsg'));
       return;
     }
 
     setIsSubmitting(true);
     try {
       const data = await authService.login(email, password);
-      
+
       if (data && data.token) {
-        await login(data.token);
+
+        await login(data.token, data.user);
       }
     } catch (error: any) {
-      Alert.alert('Giriş Başarısız', error.response?.data?.Message || 'E-posta veya şifre hatalı. Lütfen tekrar deneyin.');
+      const serverMessage = error.response?.data?.message || error.response?.data?.Message || error.response?.data?.reason;
+      Alert.alert(t('login.errorTitle'), serverMessage || t('login.defaultError'));
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -43,178 +114,225 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <View style={styles.headerContainer}>
-          <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>BU</Text>
+    <LinearGradient colors={['#1A0000', '#2D0505']} style={styles.gradientBackground}>
+      {/* Multi-layered Animated Ambient Glowing Orbs */}
+      <GlowingOrb positionStyle={{ top: -150, left: -150 }} />
+      <GlowingOrb positionStyle={{ bottom: -150, right: -150 }} />
+
+      <SafeAreaView style={styles.transparentSafeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+        >
+          <Animated.View style={[{ flex: 1, justifyContent: 'center' }, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+
+            <View style={styles.headerContainer}>
+              <View style={styles.logoRedContainer}>
+                <Ionicons name="layers" size={36} color="#FFF" />
+              </View>
+              <Text style={styles.titleWhite}>Belek Topluluk</Text>
+              <Text style={styles.subtitleGray}>KAMPÜS HAYATINA BAĞLAN</Text>
+            </View>
+
+            <View style={styles.formContainer}>
+              <View style={styles.inputContainer}>
+                <FontAwesome5 name="user" size={18} color="#8A8A8A" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.inputStyle}
+                  placeholder="Öğrenci No (örn: 241234567@ogr...)"
+                  placeholderTextColor="#8A8A8A"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color="#8A8A8A" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.inputStyle}
+                  placeholder="OBS / E-posta Şifresi"
+                  placeholderTextColor="#8A8A8A"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!isPasswordVisible}
+                />
+                <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)} style={styles.eyeIcon}>
+                  <Ionicons name={isPasswordVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color="#8A8A8A" />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.loginButton, isSubmitting && styles.loginButtonDisabled]}
+                onPress={handleLogin}
+                disabled={isSubmitting}
+                activeOpacity={0.8}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.loginButtonText}>Giriş Yap</Text>
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.bottomLinksContainer}>
+                <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                  <Text style={styles.forgotPasswordText}>Şifremi Unuttum</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.registerLinkContainer} onPress={() => navigation.navigate('Register')}>
+                  <Text style={styles.registerLinkText}>Kayıt Ol <Ionicons name="arrow-forward" size={14} color="#E02020" /></Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+          </Animated.View>
+
+          {/* Footer */}
+          <View style={styles.footerContainer}>
+            <Text style={styles.footerText}>v2.2 © Belek University IT Services</Text>
           </View>
-          <Text style={styles.title}>Belek Topluluk</Text>
-          <Text style={styles.subtitle}>İşte BU! Kampüs hayatına bağlan.</Text>
-        </View>
-
-        <View style={styles.formContainer}>
-          <TextInput 
-            style={styles.input}
-            placeholder="Öğrenci No (örn: 241234567@ogr.belek.edu.tr)" 
-            placeholderTextColor="#A0AEC0"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          
-          <TextInput 
-            style={styles.input}
-            placeholder="OBS / E-posta Şifresi" 
-            placeholderTextColor="#A0AEC0"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-
-          <TouchableOpacity 
-            style={[styles.button, isSubmitting && styles.buttonDisabled]} 
-            onPress={handleLogin}
-            disabled={isSubmitting}
-          >
-            <Text style={styles.buttonText}>
-              {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* İŞTE GÜNCELLENEN KISIM: Şifremi Unuttum Yönlendirmesi */}
-          <TouchableOpacity 
-            style={styles.forgotPasswordContainer}
-            onPress={() => navigation.navigate('ForgotPassword')}
-          >
-            <Text style={styles.forgotPasswordText}>Şifremi Unuttum</Text>
-          </TouchableOpacity>
-
-          {/* Kayıt Ekranına Yönlendirme Alanı */}
-          <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Hesabın yok mu? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.registerLink}>Kayıt Ol</Text>
-            </TouchableOpacity>
-          </View>
-
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  gradientBackground: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+  },
+  transparentSafeArea: {
+    flex: 1,
+    zIndex: 1,
+  },
+  orbContainer: {
+    position: 'absolute',
+    width: 400,
+    height: 400,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  orbLayer: {
+    position: 'absolute',
+    backgroundColor: '#E02020',
   },
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: Spacing.xl,
   },
   headerContainer: {
     alignItems: 'center',
     marginBottom: 40,
   },
-  logoPlaceholder: {
+  logoRedContainer: {
     width: 80,
     height: 80,
-    backgroundColor: '#D32F2F', 
-    borderRadius: 20,
+    backgroundColor: '#E02020',
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#D32F2F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    marginBottom: Spacing.lg,
+    shadowColor: '#E02020',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 15,
   },
-  logoText: {
-    color: '#FFFFFF',
-    fontSize: 36,
-    fontWeight: '900',
-    letterSpacing: 2,
+  titleWhite: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1A1A1A', 
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666666',
-    fontWeight: '500',
+  subtitleGray: {
+    fontSize: 12,
+    color: '#9E8B8B',
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   formContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 24,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 5,
+    width: '100%',
   },
-  input: {
-    backgroundColor: '#F7FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    padding: 16,
-    fontSize: 15,
-    marginBottom: 16,
-    color: '#1A1A1A',
-  },
-  button: {
-    backgroundColor: '#D32F2F', 
-    padding: 16,
-    borderRadius: 10,
+  inputContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#D32F2F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 4,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 16,
+    marginBottom: Spacing.md,
+    height: 60,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
-  buttonDisabled: {
-    backgroundColor: '#E57373', 
+  inputIcon: {
+    paddingHorizontal: 16,
   },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+  inputStyle: {
+    flex: 1,
+    color: '#FFF',
+    fontSize: 15,
+    height: '100%',
+  },
+  eyeIcon: {
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+  },
+  loginButton: {
+    backgroundColor: '#E02020',
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    shadowColor: '#E02020',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  loginButtonDisabled: {
+    opacity: 0.7,
+  },
+  loginButtonText: {
+    color: '#FFF',
+    fontSize: 17,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
-  forgotPasswordContainer: {
-    marginTop: 20,
+  bottomLinksContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 30,
+    paddingHorizontal: 4,
   },
   forgotPasswordText: {
-    color: '#1A1A1A', 
     fontSize: 14,
+    color: '#8A7A7A',
     fontWeight: '600',
   },
-  registerContainer: {
+  registerLinkContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 30,
+    alignItems: 'center',
   },
-  registerText: {
-    color: '#666666',
-    fontSize: 15,
+  registerLinkText: {
+    color: '#E02020',
+    fontSize: 14,
+    fontWeight: '700',
   },
-  registerLink: {
-    color: '#D32F2F',
-    fontSize: 15,
-    fontWeight: 'bold',
-  }
+  footerContainer: {
+    paddingBottom: Spacing.lg,
+    alignItems: 'center',
+  },
+  footerText: {
+    color: '#4A3030',
+    fontSize: 11,
+    fontWeight: '600',
+  },
 });

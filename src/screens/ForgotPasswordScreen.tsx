@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
-  Text, 
-  StyleSheet, 
-  Alert, 
-  KeyboardAvoidingView, 
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
   Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../services/authService';
+import Colors from '../theme/colors';
+import { CommonStyles, Typography, Spacing, Radii } from '../theme/commonStyles';
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation<any>();
@@ -28,12 +30,11 @@ export default function ForgotPasswordScreen() {
     setIsSubmitting(true);
     try {
       const response = await authService.forgotPassword(email);
-      
+
       Alert.alert('Başarılı', response.Message || 'Şifre sıfırlama kodu e-postanıza gönderildi.', [
-        { 
-          text: 'Tamam', 
-          // Kod başarıyla gittiyse, Yeni Şifre ekranına geç (E-postayı da yanında parametre olarak götür)
-          onPress: () => navigation.navigate('ResetPassword', { email: email }) 
+        {
+          text: 'Tamam',
+          onPress: () => navigation.navigate('ResetPassword', { email: email })
         }
       ]);
     } catch (error: any) {
@@ -44,42 +45,43 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+    <SafeAreaView style={CommonStyles.safeArea}>
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+        style={styles.container}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
+          <Ionicons name="arrow-back" size={28} color={Colors.text} />
         </TouchableOpacity>
 
         <View style={styles.headerContainer}>
           <View style={styles.iconCircle}>
-            <Ionicons name="key-outline" size={40} color="#D32F2F" />
+            <Ionicons name="key-outline" size={40} color={Colors.primary} />
           </View>
-          <Text style={styles.title}>Şifremi Unuttum</Text>
-          <Text style={styles.subtitle}>
+          <Text style={Typography.h2}>Şifremi Unuttum</Text>
+          <Text style={[Typography.body, { textAlign: 'center', marginTop: Spacing.sm }]}>
             Hesabınıza bağlı e-posta adresini girin, size 6 haneli bir kurtarma kodu gönderelim.
           </Text>
         </View>
 
-        <View style={styles.formContainer}>
-          <TextInput 
-            style={styles.input}
-            placeholder="Öğrenci No (@ogr.belek.edu.tr)" 
-            placeholderTextColor="#A0AEC0"
+        <View style={CommonStyles.card}>
+          <TextInput
+            style={[CommonStyles.input, { marginBottom: Spacing.xl }]}
+            placeholder="Öğrenci No (@ogr.belek.edu.tr)"
+            placeholderTextColor={Colors.textTertiary}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
           />
 
-          <TouchableOpacity 
-            style={[styles.button, isSubmitting && styles.buttonDisabled]} 
+          <TouchableOpacity
+            style={[CommonStyles.button, isSubmitting && CommonStyles.buttonDisabled]}
             onPress={handleSendCode}
             disabled={isSubmitting}
+            activeOpacity={0.8}
           >
-            <Text style={styles.buttonText}>
+            <Text style={Typography.buttonText}>
               {isSubmitting ? 'Gönderiliyor...' : 'Kodu Gönder'}
             </Text>
           </TouchableOpacity>
@@ -90,16 +92,28 @@ export default function ForgotPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA' },
-  keyboardView: { flex: 1, padding: 24, justifyContent: 'center' },
-  backButton: { position: 'absolute', top: Platform.OS === 'ios' ? 10 : 30, left: 20, zIndex: 10 },
-  headerContainer: { alignItems: 'center', marginBottom: 40 },
-  iconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#FFF0F0', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 12 },
-  subtitle: { fontSize: 15, color: '#666666', textAlign: 'center', lineHeight: 22, paddingHorizontal: 10 },
-  formContainer: { backgroundColor: '#FFFFFF', padding: 24, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 5 },
-  input: { backgroundColor: '#F7FAFC', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, padding: 16, fontSize: 15, marginBottom: 20, color: '#1A1A1A' },
-  button: { backgroundColor: '#D32F2F', paddingVertical: 16, borderRadius: 10, alignItems: 'center', shadowColor: '#D32F2F', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 5, elevation: 4 },
-  buttonDisabled: { backgroundColor: '#E57373' },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold', letterSpacing: 0.5 }
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 10 : 30,
+    left: Spacing.lg,
+    zIndex: 10,
+  },
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: Radii.round,
+    backgroundColor: Colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  }
 });

@@ -8,7 +8,7 @@ export const communityService = {
     return response.data;
   },
 
-  // Tek bir topluluğun detaylarını (etkinlikler, duyurular vb.) getiren endpoint
+  // Tek bir topluluğun detaylarını getiren endpoint
   getCommunityDetails: async (id: number): Promise<CommunityDetail> => {
     const response = await api.get(`/communities/${id}`);
     return response.data;
