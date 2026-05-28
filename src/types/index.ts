@@ -57,6 +57,46 @@ export interface CommunityDetail {
   recentAnnouncements: CommunityAnnouncementDto[];
 }
 
+export interface CommunityMessage {
+  id: string;
+  communityId: number;
+  senderId: number;
+  senderName: string;
+  senderProfileImageUrl?: string;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+  isEdited?: boolean;
+  isReadByCurrentUser?: boolean;
+  readCount?: number;
+}
+
+export interface TypingUser {
+  userId: number;
+  userName: string;
+}
+
+export interface PresencePayload {
+  userId: number;
+  communityId: number;
+}
+
+export interface MessagesReadPayload {
+  communityId: number;
+  userId: number;
+  messageIds: string[];
+}
+
+export interface MessageDeletedPayload {
+  communityId: number;
+  messageId: string;
+}
+
+export interface UserTypingPayload {
+  communityId: number;
+  userId: number;
+}
+
 export interface Notification {
   id: number;
   title: string;

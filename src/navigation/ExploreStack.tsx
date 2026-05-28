@@ -10,6 +10,7 @@ export type ExploreStackParamList = {
   ExploreMain: undefined;
   CommunityDetail: { communityId: number; communityName: string };
   EventDetail: { event: Event };
+  CommunityChat: { communityId: number; communityName: string };
 };
 
 const Stack = createNativeStackNavigator<ExploreStackParamList>();
@@ -25,6 +26,11 @@ export default function ExploreStack() {
       <Stack.Screen
         name="CommunityDetail"
         component={CommunityDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CommunityChat"
+        component={require('../screens/CommunityChatScreen').default}
         options={{ headerShown: false }}
       />
       <Stack.Screen

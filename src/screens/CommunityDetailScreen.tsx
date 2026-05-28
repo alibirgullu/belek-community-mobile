@@ -187,6 +187,17 @@ export default function CommunityDetailScreen() {
               </Text>
             )}
           </TouchableOpacity>
+          
+          {(membershipStatus === 'Active' || membershipStatus === 'Admin') && (
+            <TouchableOpacity 
+              style={[styles.iconButton, { backgroundColor: colors.primary }]} 
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('CommunityChat', { communityId: community.id, communityName: community.name })}
+            >
+              <Ionicons name="chatbubbles" size={22} color="#FFF" />
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity style={styles.iconButton} activeOpacity={0.8}>
             <Ionicons name="share-outline" size={22} color={colors.primary} />
           </TouchableOpacity>

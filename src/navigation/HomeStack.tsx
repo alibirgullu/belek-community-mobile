@@ -13,6 +13,7 @@ export type HomeStackParamList = {
   EventDetail: { event: Event };
   Notifications: undefined;
   EditEvent: { event: Event };
+  CommunityChat: { communityId: number; communityName: string };
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -25,6 +26,7 @@ export default function HomeStack() {
       <Stack.Screen name="EventDetail" component={EventDetailScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="EditEvent" component={EditEventScreen} />
+      <Stack.Screen name="CommunityChat" component={require('../screens/CommunityChatScreen').default} />
     </Stack.Navigator>
   );
 }

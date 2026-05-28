@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: Spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? 34 : Spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? 110 : 90,
     backgroundColor: Colors.background,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,

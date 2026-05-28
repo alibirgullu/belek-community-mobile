@@ -5,7 +5,8 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { User } from '../types';
-import api from '../services/api';
+import api, { setOnLogoutHandler, setAuthTokens, clearAuthTokensMemory } from '../services/api';
+import { authService } from '../services/authService';
 
 // Handle incoming notifications while app is in foreground
 Notifications.setNotificationHandler({
@@ -70,7 +71,7 @@ interface AuthContextData {
   user: User | null;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   isLoading: boolean;
-  login: (token: string, userData?: User) => Promise<void>;
+  login: (token: string, userData?: User, refreshToken?: string, persist?: boolean) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -88,6 +89,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userData = await AsyncStorage.getItem('userData');
 
       if (token) {
+        const storedRefresh = await AsyncStorage.getItem('refreshToken');
+        setAuthTokens(token, storedRefresh, true);
         setUserToken(token);
         try {
           // Token var ise güncel kullanıcı verisini API'den çek
@@ -131,10 +134,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkToken();
   }, []);
 
-  const login = async (token: string, userData?: User) => {
+  const login = async (token: string, userData?: User, refreshToken?: string, persist: boolean = true) => {
     setIsLoading(true);
     try {
-      await AsyncStorage.setItem('userToken', token);
+      // Token'ları her durumda axios interceptor'üne bildir; persist=false ise diske yazma.
+      setAuthTokens(token, refreshToken || null, persist);
+      if (persist) {
+        await AsyncStorage.setItem('userToken', token);
+        if (refreshToken) {
+          await AsyncStorage.setItem('refreshToken', refreshToken);
+        }
+      }
       setUserToken(token);
 
       // Token hafızaya ve state'e yazıldıktan sonra doğrudan profil verisini güncel olarak çek
@@ -142,7 +152,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const response = await api.get('/users/me');
         const freshUser = response.data;
         setUser(freshUser);
-        await AsyncStorage.setItem('userData', JSON.stringify(freshUser));
+        if (persist) {
+          await AsyncStorage.setItem('userData', JSON.stringify(freshUser));
+        }
 
         // Sync Push Token with Backend on Login
         try {
@@ -162,7 +174,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log('Login esnasında API Kullanıcı bilgisi hatası:', apiError);
         // Fallback olarak login metodundan dönen veriyi kayıt et
         if (userData) {
-          await AsyncStorage.setItem('userData', JSON.stringify(userData));
+          if (persist) {
+            await AsyncStorage.setItem('userData', JSON.stringify(userData));
+          }
           setUser(userData);
         }
       }
@@ -177,7 +191,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     setIsLoading(true);
     try {
+      const storedRefresh = await AsyncStorage.getItem('refreshToken');
+      await authService.logout(storedRefresh);
+      clearAuthTokensMemory();
       await AsyncStorage.removeItem('userToken');
+      await AsyncStorage.removeItem('refreshToken');
       await AsyncStorage.removeItem('userData');
       setUserToken(null);
       setUser(null);
@@ -187,6 +205,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     }
   };
+
+  // Interceptor refresh başarısız olduğunda kullanıcıyı çıkışa düşürebilsin diye handler'ı bağla.
+  useEffect(() => {
+    setOnLogoutHandler(async () => {
+      clearAuthTokensMemory();
+      await AsyncStorage.removeItem('userToken');
+      await AsyncStorage.removeItem('refreshToken');
+      await AsyncStorage.removeItem('userData');
+      setUserToken(null);
+      setUser(null);
+    });
+  }, []);
 
   return (
     <AuthContext.Provider value={{ userToken, user, setUser, isLoading, login, logout }}>

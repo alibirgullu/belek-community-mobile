@@ -67,6 +67,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const { t } = useTranslation();
   const { login } = useContext(AuthContext);
 
@@ -102,7 +103,7 @@ export default function LoginScreen() {
 
       if (data && data.token) {
 
-        await login(data.token, data.user);
+        await login(data.token, data.user, data.refreshToken, rememberMe);
       }
     } catch (error: any) {
       const serverMessage = error.response?.data?.message || error.response?.data?.Message || error.response?.data?.reason;
@@ -162,6 +163,17 @@ export default function LoginScreen() {
                   <Ionicons name={isPasswordVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color="#8A8A8A" />
                 </TouchableOpacity>
               </View>
+
+              <TouchableOpacity
+                style={styles.rememberMeRow}
+                onPress={() => setRememberMe(!rememberMe)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                  {rememberMe && <Ionicons name="checkmark" size={14} color="#FFF" />}
+                </View>
+                <Text style={styles.rememberMeText}>Beni Hatırla</Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.loginButton, isSubmitting && styles.loginButtonDisabled]}
@@ -282,6 +294,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     height: '100%',
+  },
+  rememberMeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    paddingHorizontal: 4,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  checkboxChecked: {
+    backgroundColor: '#E02020',
+    borderColor: '#E02020',
+  },
+  rememberMeText: {
+    color: '#C9B5B5',
+    fontSize: 14,
+    fontWeight: '600',
   },
   loginButton: {
     backgroundColor: '#E02020',

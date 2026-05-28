@@ -56,12 +56,7 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
-    try {
-      // Optional backend logout if implemented
-      await api.post('/auth/logout').catch(() => null);
-    } finally {
-      await logout();
-    }
+    await logout();
   };
 
   const handlePickImage = async () => {

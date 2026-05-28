@@ -137,7 +137,7 @@ export default function SettingsScreen() {
 
                 <View style={styles.versionContainer}>
                     <Text style={styles.versionText}>Belek Topluluk Mobil</Text>
-                    <Text style={styles.versionText}>Sürüm 1.0.0</Text>
+                    <Text style={styles.versionText}>Sürüm 2.1</Text>
                 </View>
 
             </ScrollView>

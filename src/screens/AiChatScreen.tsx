@@ -97,22 +97,23 @@ export default function AiChatScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton} activeOpacity={0.7}>
-          <Text style={styles.headerButtonText}>{t('aiChat.close')}</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>{t('aiChat.title')}</Text>
-        </View>
-        <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
-          <Ionicons name="ellipsis-horizontal" size={24} color={Colors.primary} />
-        </TouchableOpacity>
-      </View>
-
       <KeyboardAvoidingView
-        style={styles.chatContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
       >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton} activeOpacity={0.7}>
+            <Text style={styles.headerButtonText}>{t('aiChat.close')}</Text>
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>{t('aiChat.title')}</Text>
+          </View>
+          <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
+            <Ionicons name="ellipsis-horizontal" size={24} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.chatContainer}>
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -152,6 +153,7 @@ export default function AiChatScreen() {
               </TouchableOpacity>
             )}
           </View>
+        </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

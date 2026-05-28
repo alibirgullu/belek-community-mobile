@@ -26,7 +26,7 @@ export default function MainTab() {
         return {
           headerShown: false,
           tabBarHideOnKeyboard: true,
-          tabBarStyle: routeName === 'AiChat' ? { display: 'none' } : undefined,
+          tabBarStyle: ['AiChat', 'CommunityChat'].includes(routeName) ? { display: 'none' } : undefined,
         };
       }}
     >

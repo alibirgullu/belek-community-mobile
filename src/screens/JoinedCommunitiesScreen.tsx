@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Colors from '../theme/colors';
 import { CommonStyles, Typography, Spacing, Radii, Shadows } from '../theme/commonStyles';
 import api from '../services/api';
@@ -12,18 +12,37 @@ import { useTranslation } from 'react-i18next';
 export default function JoinedCommunitiesScreen() {
     const { t } = useTranslation();
     const navigation = useNavigation<any>();
-    const [communities, setCommunities] = useState<Community[]>([]);
+    const [communities, setCommunities] = useState<(Community & { isJoined?: boolean })[]>([]);
+    const [unreadCounts, setUnreadCounts] = useState<Record<number, number>>({});
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        fetchJoinedCommunities();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchJoinedCommunities();
+        }, [])
+    );
+
+    const fetchUnreadCounts = async (joinedIds: number[]) => {
+        if (joinedIds.length === 0) return;
+        const results = await Promise.allSettled(
+            joinedIds.map(id => api.get(`/communities/${id}/messages/unread-count`).then(r => ({ id, count: r.data.unreadCount ?? 0 })))
+        );
+        const counts: Record<number, number> = {};
+        for (const r of results) {
+            if (r.status === 'fulfilled' && r.value.count > 0) {
+                counts[r.value.id] = r.value.count;
+            }
+        }
+        setUnreadCounts(counts);
+    };
 
     const fetchJoinedCommunities = async () => {
         try {
-            
             const res = await api.get('/communities');
-            setCommunities(res.data);
+            const list = res.data as (Community & { isJoined?: boolean })[];
+            setCommunities(list);
+            const joinedIds = list.filter(c => c.isJoined).map(c => c.id);
+            fetchUnreadCounts(joinedIds);
         } catch (error) {
             console.log('Topluluklar yüklenirken hata', error);
         } finally {
@@ -65,6 +84,13 @@ export default function JoinedCommunitiesScreen() {
                                     <Text style={styles.communityName} numberOfLines={1}>{item.name}</Text>
                                     <Text style={styles.communityDesc} numberOfLines={2}>{item.description}</Text>
                                 </View>
+                                {unreadCounts[item.id] > 0 && (
+                                    <View style={styles.unreadBadge}>
+                                        <Text style={styles.unreadBadgeText}>
+                                            {unreadCounts[item.id] > 99 ? '99+' : unreadCounts[item.id]}
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
                             <View style={styles.cardFooter}>
                                 <View style={styles.tag}>
@@ -202,5 +228,20 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: Colors.primary,
         marginLeft: 4,
-    }
+    },
+    unreadBadge: {
+        minWidth: 22,
+        height: 22,
+        borderRadius: 11,
+        backgroundColor: Colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 6,
+        marginLeft: Spacing.sm,
+    },
+    unreadBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '800',
+    },
 });

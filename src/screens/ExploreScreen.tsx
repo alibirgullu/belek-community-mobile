@@ -43,8 +43,9 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-// Categories list. We will translate "Tümü" dynamically
-const rawCategories = ['all', 'software', 'design', 'sports', 'general'];
+type CategoryItem = { id: number | null; name: string };
+
+const ALL_CATEGORY: CategoryItem = { id: null, name: 'all' };
 
 // Define gradient colors based on category
 const getGradientProps = (category: string) => {
@@ -52,6 +53,7 @@ const getGradientProps = (category: string) => {
   if (cat.includes('yazılım')) return { colors: ['#1A2035', '#242F4B'] as const, icon: 'laptop-outline' };
   if (cat.includes('tasarım')) return { colors: ['#8A2387', '#E94057'] as const, icon: 'color-palette-outline' };
   if (cat.includes('spor')) return { colors: ['#00B4DB', '#0083B0'] as const, icon: 'basketball-outline' };
+  if (cat.includes('müzik')) return { colors: ['#7B1FA2', '#E040FB'] as const, icon: 'musical-notes-outline' };
   if (cat.includes('girişim')) return { colors: ['#4CB8C4', '#3CD3AD'] as const, icon: 'time-outline' };
   return { colors: ['#E02020', '#FF5A00'] as const, icon: 'people-outline' }; // Default Red
 };
@@ -64,7 +66,8 @@ export default function ExploreScreen() {
 
   const [communities, setCommunities] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [activeCategory, setActiveCategory] = useState<CategoryItem>(ALL_CATEGORY);
+  const [categories, setCategories] = useState<CategoryItem[]>([ALL_CATEGORY]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -82,7 +85,7 @@ export default function ExploreScreen() {
   const fetchCommunities = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setIsLoading(true);
     try {
-      const categoryParam = activeCategory === 'all' ? '' : t(`explore.${activeCategory}`);
+      const categoryParam = activeCategory.id === null ? '' : activeCategory.name;
       const searchParam = debouncedSearch;
 
       const response = await api.get('/communities', {
@@ -105,6 +108,22 @@ export default function ExploreScreen() {
   useEffect(() => {
     fetchCommunities();
   }, [fetchCommunities]);
+
+  // Kategorileri backend'den çek (admin yeni kategori eklerse otomatik gelir)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get('/communities/categories');
+        if (cancelled) return;
+        const fetched: CategoryItem[] = (res.data || []).map((c: any) => ({ id: c.id, name: c.name }));
+        setCategories([ALL_CATEGORY, ...fetched]);
+      } catch (error) {
+        console.log('Kategorileri çekerken hata:', error);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const onRefresh = () => {
     setIsRefreshing(true);
@@ -156,12 +175,12 @@ export default function ExploreScreen() {
         name: requestData.name,
         description: requestData.description,
         advisorName: requestData.advisorName,
-        categoryName: requestData.categoryName === 'all' ? 'Genel' : t(`explore.${requestData.categoryName}`)
+        categoryName: requestData.categoryName || 'Genel'
       });
 
       Alert.alert(t('explore.alertSuccessTitle'), t('explore.alertSuccessDesc'));
       setIsRequestModalVisible(false);
-      setRequestData({ name: '', description: '', advisorName: '', categoryName: 'general' });
+      setRequestData({ name: '', description: '', advisorName: '', categoryName: 'Genel' });
     } catch (error: any) {
       console.log('Topluluk başvuru hatası:', error);
       Alert.alert(t('explore.alertErrorTitle'), error.response?.data?.Message || 'Başvurunuz onaylanırken bir hata oluştu.');
@@ -175,10 +194,11 @@ export default function ExploreScreen() {
       <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
-        data={rawCategories}
-        keyExtractor={(item) => item}
+        data={categories}
+        keyExtractor={(item) => (item.id === null ? 'all' : String(item.id))}
         renderItem={({ item }) => {
-          const isActive = item === activeCategory;
+          const isActive = item.id === activeCategory.id;
+          const label = item.id === null ? t('explore.all') : item.name;
           return (
             <TouchableOpacity
               activeOpacity={0.8}
@@ -192,7 +212,7 @@ export default function ExploreScreen() {
                 styles.chipText,
                 isActive ? styles.chipTextActive : styles.chipTextInactive
               ]}>
-                {t(`explore.${item}`)}
+                {label}
               </Text>
             </TouchableOpacity>
           );
@@ -405,13 +425,13 @@ export default function ExploreScreen() {
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>{t('explore.categoryLabel')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4, paddingBottom: 8 }}>
-                  {rawCategories.filter(c => c !== 'all').map(cat => {
-                    const isSelected = requestData.categoryName === cat;
+                  {categories.filter(c => c.id !== null).map(cat => {
+                    const isSelected = requestData.categoryName === cat.name;
                     return (
                       <TouchableOpacity
-                        key={cat}
+                        key={cat.id}
                         activeOpacity={0.8}
-                        onPress={() => setRequestData(prev => ({ ...prev, categoryName: cat }))}
+                        onPress={() => setRequestData(prev => ({ ...prev, categoryName: cat.name }))}
                         style={[
                           styles.chip,
                           isSelected ? styles.chipActive : styles.chipInactive,
@@ -422,7 +442,7 @@ export default function ExploreScreen() {
                           styles.chipText,
                           isSelected ? styles.chipTextActive : styles.chipTextInactive
                         ]}>
-                          {t(`explore.${cat}`)}
+                          {cat.name}
                         </Text>
                       </TouchableOpacity>
                     );

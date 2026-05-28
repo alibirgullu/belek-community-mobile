@@ -7,7 +7,17 @@ export const authService = {
       return response.data;
     } catch (error) {
       console.error("Login API Hatası:", error);
-      throw error; 
+      throw error;
+    }
+  },
+
+  logout: async (refreshToken: string | null) => {
+    if (!refreshToken) return;
+    try {
+      await api.post('/users/logout', { refreshToken });
+    } catch (error) {
+      // Çıkış başarısız olsa bile lokal temizlik yapılacak; sessiz geç.
+      console.log('Logout API çağrısı başarısız (lokal temizlik devam edecek):', error);
     }
   },
 
